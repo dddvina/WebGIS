@@ -92,6 +92,21 @@
     return CATEGORY_MAP[kategori]?.label || kategori;
   }
 
+  // Fetch JSON with fallback URLs to support different static host mappings.
+  async function fetchJsonWithFallback(urls, label) {
+    let lastStatus = null;
+    for (const url of urls) {
+      try {
+        const res = await fetch(url);
+        if (res.ok) return await res.json();
+        lastStatus = res.status;
+      } catch (e) {
+        // Try next candidate URL
+      }
+    }
+    throw new Error(`HTTP ${lastStatus ?? 'N/A'} saat memuat ${label}`);
+  }
+
   // ────────────────────────────────────────────
   //  MAP INITIALIZATION
   // ────────────────────────────────────────────
@@ -601,14 +616,20 @@
   async function loadData() {
     try {
       setLoadingStatus('Memuat data POI...', 35);
-      const poiRes = await fetch('public/data/poi_dubai.json?v=2');
-      if (!poiRes.ok) throw new Error(`HTTP ${poiRes.status} saat memuat POI`);
-      const poiData = await poiRes.json();
+      const poiData = await fetchJsonWithFallback([
+        'data/poi_dubai.json?v=2',
+        '/data/poi_dubai.json?v=2',
+        'public/data/poi_dubai.json?v=2',
+        '/public/data/poi_dubai.json?v=2'
+      ], 'POI');
 
       setLoadingStatus('Memuat data bangunan...', 55);
-      const bldRes = await fetch('public/data/bangunan_dubai.json?v=2');
-      if (!bldRes.ok) throw new Error(`HTTP ${bldRes.status} saat memuat Bangunan`);
-      const bangunanData = await bldRes.json();
+      const bangunanData = await fetchJsonWithFallback([
+        'data/bangunan_dubai.json?v=2',
+        '/data/bangunan_dubai.json?v=2',
+        'public/data/bangunan_dubai.json?v=2',
+        '/public/data/bangunan_dubai.json?v=2'
+      ], 'Bangunan');
 
       setLoadingStatus('Merender marker...', 70);
 
@@ -657,3 +678,4 @@
   loadData();
 
 })();
+
